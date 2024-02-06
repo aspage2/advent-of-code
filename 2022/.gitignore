@@ -1,0 +1,5 @@
+.elixir_ls
+*.swp
+.idea/
+.vscode/
+__pycache__/
