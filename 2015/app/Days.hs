@@ -1,12 +1,14 @@
 module Days where
 
 import qualified Day1
+import qualified Day2
 
 type Day = String -> IO ()
 
 days :: [(Int, Day)] 
 days = [
     (1, Day1.dayMain)
+  , (2, Day2.dayMain)
  ]
 
 selectDay :: Int -> Either String Day
