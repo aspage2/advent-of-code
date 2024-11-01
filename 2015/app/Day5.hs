@@ -3,7 +3,6 @@ module Day5 where
 import qualified Data.Map as M
 import Control.Applicative (liftA3, Applicative (liftA2))
 import Data.List (foldl')
-import Day1 (part1)
 
 countPred :: (a -> Bool) -> [a] -> Int 
 countPred p = foldl' (\a c -> if p c then a + 1 else a) 0

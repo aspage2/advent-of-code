@@ -49,7 +49,3 @@ main = do
         Left err -> putStrLn err
         Right (loc, dayE) -> dayE loc
 
-
-
-
-

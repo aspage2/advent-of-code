@@ -5,6 +5,7 @@ import qualified Day2
 import qualified Day3
 import qualified Day4
 import qualified Day5
+import qualified Day6
 
 type Day = String -> IO ()
 
@@ -15,6 +16,7 @@ days = [
   , (3, Day3.dayMain)
   , (4, Day4.dayMain)
   , (5, Day5.dayMain)
+  , (6, Day6.dayMain)
  ]
 
 selectDay :: Int -> Either String Day
