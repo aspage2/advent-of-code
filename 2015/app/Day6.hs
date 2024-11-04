@@ -1,54 +1,32 @@
 module Day6 where
 
-import Control.Monad.State.Lazy (State, state, modify, evalState)
-import Data.Char (isDigit)
-import Data.List (isPrefixOf)
+import Parser (runParser, Parser, str, char, whiteSpace, integer)
 
+import Control.Monad (liftM2)
+import Control.Applicative ((<|>))
 import Control.Monad.ST (ST, runST)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 
+
 type Op = (Int -> Int)
 data Command = Command !Op !(Int, Int) !(Int, Int)
 
-takeOp :: State String Op
-takeOp = state f where
-     f s | "turn on " `isPrefixOf` s = (const 1, drop 8 s)
-         | "turn off " `isPrefixOf` s = (const 0, drop 9 s)
-         | "toggle " `isPrefixOf` s = (\x -> if x > 0 then 0 else 1, drop 7 s)
-         | otherwise = error "not an op"
+parse :: Op -> Op -> Op -> Parser Command
+parse on off togg = do
+    op <- (str "turn on" >> return on)
+      <|> (str "turn off" >> return off)
+      <|> (str "toggle" >> return togg)
 
-takeOp2 :: State String Op
-takeOp2 = state f where
-     f s | "turn on " `isPrefixOf` s = ((+1), drop 8 s)
-         | "turn off " `isPrefixOf` s = (\x -> max (x - 1) 0 , drop 9 s)
-         | "toggle " `isPrefixOf` s = ((+2), drop 7 s)
-         | otherwise = error "not an op"
+    _ <- whiteSpace
 
-splitWhile :: (a -> Bool) -> [a] -> ([a], [a])
-splitWhile _ [] = ([], [])
-splitWhile p full@(x:xs) | p x = let (a, rest) = splitWhile p xs in (x:a, rest)
-                         | otherwise = ([], full)
+    fr <- liftM2 (,) integer (char ',' >> integer)
 
-takeNum :: State String Int
-takeNum = read <$> state (splitWhile isDigit)
+    _ <- whiteSpace >> str "through" >> whiteSpace
 
-takeCommand :: State String Op -> State String Command
-takeCommand to = do
-    op <- to
+    to <- liftM2 (,) integer (char ',' >> integer)
 
-    a <- takeNum
-    modify (drop 1)
-    b <- takeNum
-
-    modify (drop 9) -- ' through '
-    
-    c <- takeNum
-    modify (drop 1)
-    d <- takeNum
-
-    return $ Command op (a, b) (c, d)
-
+    return $ Command op fr to
 
 newGrid :: ST s (VM.MVector s Int)
 newGrid = VM.replicate (1000*1000) 0
@@ -66,11 +44,23 @@ simulate commands = runST $ do
     mapM_ (`gridCommand` g) commands
     V.unsafeFreeze g
 
+part1Command :: Parser Command
+part1Command = parse (const 1) (const 0) (\x -> if x > 0 then 0 else 1)
+
+part2Command :: Parser Command
+part2Command = parse (+1) (max 0 . (-1+)) (+2)
+
+mapEither :: (a -> Either b c) -> [a] -> [c]
+mapEither _ [] = []
+mapEither f (x:xs) = case f x of
+    Right c -> c : mapEither f xs
+    Left _ -> mapEither f xs
+
 dayMain :: String -> IO ()
 dayMain fname = do
     ls <- lines <$> readFile fname
-    let p1commands = map (evalState $ takeCommand takeOp) ls
-    let p2commands = map (evalState $ takeCommand takeOp2) ls
+    let p1commands = mapEither (runParser part1Command) ls
+    let p2commands = mapEither (runParser part2Command) ls
 
-    print $ sum $ simulate p1commands
-    print $ sum $ simulate p2commands
+    print $ sum $ simulate $ map fst p1commands
+    print $ sum $ simulate $ map fst p2commands
