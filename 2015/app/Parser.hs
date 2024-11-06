@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase, TupleSections #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Parser where
 
@@ -7,7 +7,7 @@ import Data.Function (fix)
 import Data.Char (isDigit)
 import Text.Read (readEither)
 
-data Error = Error !String | EOF | Nil
+data Error = Error !String | EOF | Nil deriving (Show)
 
 newtype Parser a = Parser { 
     runParser :: String -> Either Error (a, String)
@@ -20,7 +20,8 @@ instance Functor Parser where
         Right (a, rest) -> Right (f a, rest)
         Left e -> Left e
 
-instance Applicative Parser where
+instance Applicative Parser where 
+
     pure x = Parser $ \s -> Right (x, s)
 
     (Parser r) <*> (Parser r') = Parser $ \s -> do
@@ -79,3 +80,6 @@ integer = do
     case readEither lexeme of
         Left err -> parseError err
         Right i -> return i
+
+remaining :: Parser String
+remaining = Parser $ \s -> Right (s, [])
