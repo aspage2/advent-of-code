@@ -47,6 +47,9 @@ instance Alternative Parser where
 
 ------------------------------------------------------------
 
+curr :: Parser String
+curr = Parser $ \s -> Right (s, s)
+
 char :: Char -> Parser ()
 char c = Parser $ \case
     []                 -> Left EOF
@@ -80,6 +83,17 @@ integer = do
     case readEither lexeme of
         Left err -> parseError err
         Right i -> return i
+
+notPred :: (Char -> Bool) -> Parser Char
+notPred p = Parser $ \case
+    (s:ss) |       p s -> Left $ Error "char matches predicate"
+           | otherwise -> Right (s, ss)
+    [] -> Left EOF
+
+anyChar :: Parser Char
+anyChar = Parser $ \case
+    x:xs -> Right (x, xs)
+    _else -> Left EOF
 
 remaining :: Parser String
 remaining = Parser $ \s -> Right (s, [])

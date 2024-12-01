@@ -7,7 +7,6 @@ import Data.List (foldl')
 countPred :: (a -> Bool) -> [a] -> Int 
 countPred p = foldl' (\a c -> if p c then a + 1 else a) 0
 
-
 pairs :: [a] -> [(a, a)]
 pairs [] = []
 pairs x@(_:xs) = zip x xs
