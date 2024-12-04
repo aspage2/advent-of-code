@@ -1,22 +1,36 @@
-
-import day2
 import gleam/io
-import gleam/string
-import gleam/list
+import gleam/result
+import util
 
-pub type Atom
+import day1
+import day2
+import day3
 
-@external(erlang, "init", "get_plain_arguments")
-pub fn erl_get_plain_arguments() -> Result(List(List(UtfCodepoint)), Atom)
+type AdventMain = fn(util.AdventDay) -> Nil 
 
+const days: List(AdventMain) = [
+	day1.day_main,
+	day2.day_main,
+	day3.day_main,
+]
 
-/// Return command line args
-pub fn argv() -> List(String) {
-	let assert Ok(args) = erl_get_plain_arguments()
+fn get_day(i: Int, days: List(AdventMain)) -> Result(AdventMain, String) {
+	case days {
+		[] -> Error("list index out of range")
+		[x, .._] if i <= 0 -> Ok(x)
+		[_, ..rest] -> get_day(i - 1, rest)
+	}
+}
 
-	list.map(args, string.from_utf_codepoints)
+fn main_func() -> Result(Nil, String) {
+	use day <- result.try(util.parse_args())
+	use fnc <- result.try(get_day(day.day-1, days))
+	Ok(fnc(day))
 }
 
 pub fn main() {
-	day2.day_main()
+	case main_func() {
+		Ok(_) -> Nil
+		Error(msg) -> io.println_error(msg)
+	}
 }

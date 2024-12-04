@@ -42,8 +42,8 @@ fn part2(left: List(Int), right: List(Int)) -> Int {
 		|> int.sum
 }
 
-pub fn day_main() {
-	let assert Ok(data) = util.read_file("day2.txt") 
+pub fn day_main(day: util.AdventDay) {
+	let assert Ok(data) = util.read_file(day.file)
 		|> result.map(string.trim)
 
 	let rows = string.split(data, "\n")
@@ -52,4 +52,5 @@ pub fn day_main() {
 
 	io.debug(part1(l1, l2))
 	io.debug(part2(l1, l2))
+	Nil
 }

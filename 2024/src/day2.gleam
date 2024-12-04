@@ -55,8 +55,8 @@ fn is_safe(report: List(Int)) -> Bool {
 		|| is_safe_rec(report, order.Gt, False, None)
 }
 
-pub fn day_main() {
-	let assert Ok(lines) = util.read_file("data/day2.txt") 
+pub fn day_main(day: util.AdventDay) {
+	let assert Ok(lines) = util.read_file(day.file)
 		|> result.map(string.trim)
 		|> result.map(string.split(_, "\n"))
 
@@ -68,6 +68,9 @@ pub fn day_main() {
 		})
 		|> result.all
 
+	io.println("Part1")
 	io.debug(list.count(reports, is_safe_1))
+	io.println("Part2")
 	io.debug(list.count(reports, is_safe))
+	Nil
 }
