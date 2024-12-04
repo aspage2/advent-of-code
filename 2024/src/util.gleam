@@ -25,12 +25,12 @@ fn parse_args_rec(day: AdventDay, args: List(String)) -> Result(AdventDay, Strin
 		[flg, val, ..rest] -> {
 			use new_day <- result.try(case flg {
 				"--day" -> int.parse(val) 
-							|> result.replace_error("Day must be an integer")
-							|> result.map(fn(i) { AdventDay(..day, day:i) }) 
+					|> result.replace_error("Day must be an integer")
+					|> result.map(fn(i) { AdventDay(..day, day:i) }) 
 				"--part" -> int.parse(val) 
-							|> result.replace_error("Part must be an integer")
-							|> result.then(fn(i) { case i >= 1 && i <= 2 {True->Ok(i) False->Error("Part must be 1 or 2")} })
-							|> result.map(fn(i) { AdventDay(..day, day:i) }) 
+					|> result.replace_error("Part must be an integer")
+					|> result.then(fn(i) { case i >= 1 && i <= 2 {True->Ok(i) False->Error("Part must be 1 or 2")} })
+					|> result.map(fn(i) { AdventDay(..day, part:i) }) 
 				"--file" -> Ok(AdventDay(..day, file: val))
 
 				x -> Error("Not a flag: "<>x)
