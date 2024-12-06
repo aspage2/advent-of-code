@@ -9,7 +9,7 @@ pub type Atom
 @external(erlang, "init", "get_plain_arguments")
 fn erl_get_plain_arguments() -> List(List(UtfCodepoint))
 
-fn argv() -> List(String) {
+pub fn argv() -> List(String) {
 	erl_get_plain_arguments()
 		|> list.map(string.from_utf_codepoints)
 }
@@ -40,25 +40,26 @@ fn parse_args_rec(day: AdventDay, args: List(String)) -> Result(AdventDay, Strin
 	}
 }
 
-pub fn parse_args() -> Result(AdventDay, String) {
-	parse_args_rec(AdventDay(1, 1, "data/day1.txt"), argv())
+pub fn parse_args(args: List(String)) -> Result(AdventDay, String) {
+	parse_args_rec(AdventDay(1, 1, "data/day1.txt"), args)
 }
 
 @external(erlang, "file", "read_file")
-pub fn erl_read_file(fname: String) -> Result(BitArray, Atom)
+fn erl_read_file(fname: String) -> Result(BitArray, Atom)
 
 @external(erlang, "erlang", "atom_to_list")
-pub fn erl_atom_to_list(a: Atom) -> List(UtfCodepoint) 
+fn erl_atom_to_list(a: Atom) -> List(UtfCodepoint) 
 
-pub fn read_file(fname: String) -> Result(String, String) {
-	use bin <- result.try(erl_read_file(fname)
+
+pub fn read_file_raw(fname: String) -> Result(BitArray, String) {
+	erl_read_file(fname)
 		|> result.map_error(fn(a) { 
 			erl_atom_to_list(a) |> string.from_utf_codepoints
 		})
-	)
-
-	bit_array.to_string(bin)
-		|> result.map_error(fn(_) { "not a valid bit sequence" })
 }
 
-
+pub fn read_file(fname: String) -> Result(String, String) {
+	use data <- result.try(read_file_raw(fname))
+	bit_array.to_string(data) 
+		|> result.replace_error("not valid utf8")
+}

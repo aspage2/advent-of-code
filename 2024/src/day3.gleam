@@ -61,6 +61,8 @@ fn traverse_part2(acc: List(#(Int, Int)), data: String, en: Bool) -> List(#(Int,
 pub fn day_main(day: util.AdventDay) {
 	let assert Ok(txt) = util.read_file(day.file) |> result.map(string.trim)
 
+	io.debug(string.length(txt))
+
 	traverse_part2([], txt, True)
 		|> list.map(fn(p) { p.0 * p.1 })
 		|> int.sum()
