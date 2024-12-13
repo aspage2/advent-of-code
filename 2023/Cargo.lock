@@ -3,10 +3,6 @@
 version = 3
 
 [[package]]
-name = "board"
-version = "0.1.0"
-
-[[package]]
 name = "day1"
 version = "0.1.0"
 
@@ -39,14 +35,6 @@ name = "day16"
 version = "0.1.0"
 
 [[package]]
-name = "day17"
-version = "0.1.0"
-dependencies = [
- "board",
- "puzzle_input",
-]
-
-[[package]]
 name = "day2"
 version = "0.1.0"
 
@@ -76,8 +64,4 @@ version = "0.1.0"
 
 [[package]]
 name = "day9"
-version = "0.1.0"
-
-[[package]]
-name = "puzzle_input"
 version = "0.1.0"

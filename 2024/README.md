@@ -29,26 +29,8 @@ numeric types. For example, addition has two operators: `+` for ints, and `+.`
 for floating-point numbers.
 
 ### `use` syntactic sugar
+`use` is a bit like Haskell's `do` notation, in that it's really just
+syntactic sugar for some other language operation.
 
-`use` expressions work for any function with a **callback** as its last argument:
-* `result.then(res: Result(a, b), fn(a) -> Result(c, b)) -> Result(c, b)`
-* `list.map(l: List(a), fn(a) -> b) -> List(b)`
+For Haskell, `do` notation collects several monadic operations and calls 
 
-Typical use of `list.map` has users defining an anonymous function to perform
-the mapping:
-
-```gleam
-pub fn add_one(l: List(Int)) -> List(Int) {
-    list.map(l, fn(x) { x + 1 })
-}
-```
-
-Because `list.map` has a callback as its last parameter, this expression
-can be translated into a `use` expression.
-
-```gleam
-pub fn add_one(l: List(Int)) -> List(Int) {
-    use x <- list.map(l)
-    x + 1
-}
-```
