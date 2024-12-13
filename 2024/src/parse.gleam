@@ -14,6 +14,10 @@ pub fn trans_func(tf: fn(s) -> #(a, s)) -> State(s, a) {
 	State(tf)
 }
 
+pub fn do(s: State(s, a), f: fn(a) -> State(s, b)) -> State(s, b) {
+	bind(s, f)
+}
+
 pub fn bind(s: State(s, a), f: fn(a) -> State(s, b)) -> State(s, b) {
 	use x <- trans_func()
 
@@ -37,7 +41,7 @@ pub fn get() -> State(s, s) {
 	#(s, s)
 }
 
-type Parser(a) = State(String, a)
+pub type Parser(a) = State(String, a)
 
 pub fn split_once(on: String) -> Parser(String) {
 	use s <- trans_func()
@@ -45,8 +49,19 @@ pub fn split_once(on: String) -> Parser(String) {
 	pair
 }
 
+pub fn pure(x: a) -> Parser(a) {
+	use s <- trans_func
+	#(x, s)
+}
+
+pub fn drop(n: Int) -> Parser(Nil) {
+	use s <- trans_func
+	let res = string.drop_start(s, n)
+	#(Nil, res)
+}
+
 pub fn split2(on1: String, on2: String) -> Parser(#(String, String)) {
-	use s1 <- bind(split_once(on1))
-	use s2 <- map(split_once(on2))
-	#(s1, s2)
+	use s1 <- do(split_once(on1))
+	use s2 <- do(split_once(on2))
+	pure(#(s1, s2))
 }

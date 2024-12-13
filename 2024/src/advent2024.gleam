@@ -14,6 +14,7 @@ import day9
 import day10
 import day11
 import day12
+import day13
 
 import scratch
 
@@ -32,6 +33,7 @@ const days: List(AdventMain) = [
 	day10.day_main,
 	day11.day_main,
 	day12.day_main,
+	day13.day_main,
 ]
 
 fn get_day(i: Int, days: List(AdventMain)) -> Result(AdventMain, String) {
