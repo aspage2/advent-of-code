@@ -1,3 +1,5 @@
+import gleam/result
+import gleam/string_tree
 import gleam/list
 import gleam/order
 import gleam/bool
@@ -96,12 +98,37 @@ pub fn checksum(bs: List(Block)) -> Int {
 	ret
 }
 
+pub fn to_string_rec(sb: string_tree.StringTree, bs: List(Block), spc: List(Int)) -> String {
+	case bs {
+		[] -> string_tree.to_string(sb)
+		[h, ..rest] -> {
+
+			let sb = h.id
+				|> int.to_string
+				|> string.repeat(h.size)
+				|> string_tree.append(sb, _)
+
+			let #(sb, spc) = case spc {
+				[] -> #(sb, spc)
+				[sh, ..srest] -> #(string.repeat(".", sh)
+						|> string_tree.append(sb, _), srest)
+			}
+			to_string_rec(sb, rest, spc)
+		}
+	}
+}
+
+pub fn to_string(bs: List(Block), spc: List(Int)) -> String {
+	to_string_rec(string_tree.new(), bs, spc)
+}
+
 pub fn day_main(day: util.AdventDay) {
 	let assert Ok(txt) = util.read_file(day.file)
 	let #(bs, spc) = parse_disk_map(txt)
 	let res = compact_disk(bs, spc)
+	io.debug(to_string(bs, spc))
+	io.debug(to_string(res, []))
 	io.debug("==================")
-	io.debug(res)
 	io.debug(checksum(res))
 	Nil
 }

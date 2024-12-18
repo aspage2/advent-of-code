@@ -3,7 +3,6 @@ import gleam/list
 import gleam/bit_array
 import gleam/string
 import gleam/bytes_tree
-import gleam/iterator
 
 /// A Grid is a 2D rectangular plane made up
 /// of whole-number cells. It uses a bitarray
@@ -15,6 +14,20 @@ pub type Grid {
 /// A Cell is the location within a Grid.
 pub type Cell {
 	Cell(r: Int, c: Int)
+}
+
+pub type Dir {
+	N S E W
+}
+
+pub fn move(c: Cell, d: Dir) -> Cell {
+	let Cell(r, c) = c
+	case d {
+	N -> Cell(r-1, c)
+	S -> Cell(r+1, c)
+	E -> Cell(r, c+1)
+	W -> Cell(r, c-1)
+	}
 }
 
 // Convert the cell to the bit_array index

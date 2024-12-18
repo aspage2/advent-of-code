@@ -1,7 +1,12 @@
+import gleam/pair
 import gleam/string
 
 pub type State(s, a) {
 	State(run: fn(s) -> #(a, s))
+}
+
+pub fn eval(s: State(s, a), v: s) -> a {
+	s.run(v) |> pair.first
 }
 
 pub fn map(s: State(s, a), f: fn(a) -> b) -> State(s, b) {
