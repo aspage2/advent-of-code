@@ -1,4 +1,4 @@
-import gleam/dict.{type Dict}
+import gleam/dict
 import gleam/io
 import gleam/string
 import gleam/bit_array
@@ -6,9 +6,10 @@ import gleam/list
 import gleam/int
 import gleam/float
 import gleam/bool
-import gleam/option
-import util
 import gleam/result
+
+import counter
+import util
 
 const main_input = "2701 64945 0 9959979 93 781524 620 1"
 const example_input = "125 17"
@@ -24,15 +25,13 @@ fn num_digits(x: Int) -> Int {
 	x + 1
 }
 
-fn next(l: Dict(Int, Int)) -> Dict(Int, Int) {
-	use acc, num, count <- dict.fold(l, dict.new())
-	let res = {
-		use <- bool.guard(num == 0, [1])
-		let num_digits = num_digits(num)
-		case num_digits % 2 == 0 {
-		True -> {
+fn rock_next(i: Int) -> List(Int) {
+	use <- bool.guard(i == 0, [1])
+	let num_digits = num_digits(i)
+	case num_digits % 2 {
+		0 -> {
 			let nover2 = num_digits/2
-			let s = int.to_string(num)
+			let s = int.to_string(i)
 			let assert <<fst:bytes-size(nover2), snd:bytes>> = <<s:utf8>>
 			let assert Ok(x) = result.all([
 				bit_array.to_string(fst) |> result.then(int.parse),
@@ -40,29 +39,32 @@ fn next(l: Dict(Int, Int)) -> Dict(Int, Int) {
 			])
 			x
 		}
-		False -> [2024 * num]
-		}
-	}
-
-	use d, n <- list.fold(res, acc)
-	use opt <- dict.upsert(d, n)
-	case opt {
-	option.None -> count
-	option.Some(x) -> count + x
+		_ -> [2024 * i]
 	}
 }
 
-pub fn day_main(_: util.AdventDay) {
-	let assert Ok(data) = main_input
+
+fn part(in: String) -> Nil {
+	let assert Ok(data) = in 
 		|> string.split(" ")
 		|> list.map(int.parse)
 		|> result.all
-	
-	let ugh = data |> list.map(fn(x) {#(x, 1)}) |> dict.from_list
-	let res = list.fold(list.range(1, 25), ugh, fn(acc, _) { next(acc) })
-	io.debug(dict.values(res) |> int.sum)
-	let res = list.fold(list.range(1, 50), ugh, fn(acc, _) { next(acc) })
-	io.debug(dict.values(res) |> int.sum)
+
+	let c = data |> counter.from_keys
+	let res = list.fold(list.range(1, 25), c, fn(acc, _) {counter.multiply(acc, rock_next)})
+	io.println("25 iterations: " <> int.to_string(counter.total(res)))
+	let res = list.fold(list.range(1, 50), res, fn(acc, _) { counter.multiply(acc, rock_next)})
+	io.println("75 iterations: " <> int.to_string(dict.values(res) |> int.sum))
+}
+
+pub fn day_main(_: util.AdventDay) {
+
+	io.println("example input: " <> example_input)
+	part(example_input)
+	io.println("-----------")
+	io.println("main input: " <> main_input)
+	part(main_input)
+
 	Nil
 }
 
