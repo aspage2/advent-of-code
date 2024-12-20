@@ -57,21 +57,29 @@ fn to_string(l: List(Block)) -> String {
 }
 
 // Insert from the end. Return how much of the file is left.
+// Implements Part 1, where we can break the file into pieces
+// to fit into smaller spaces.
 fn insert_at_end(l: List(Block), id: Int, file_size: Int) -> #(List(Block), Int) {
+  // Right-fold style!
   case l {
     [] -> #([], file_size)
     [h, ..rest] -> {
       let #(l, file_size) = insert_at_end(rest, id, file_size)
       use <- bool.guard(file_size == 0, #([h, ..l], 0))
       case h {
+        // |----S-----| -> <--F-->|-S-|
+        // <--F-->
         Space(space_size) if space_size > file_size -> #(
           [Space(space_size - file_size), File(id, file_size), ..l],
           0,
         )
+        // |--S--|   ->  <--F--> + remainder
+        // <---F--->
         Space(space_size) if space_size > 0 -> #(
           [File(id, space_size), ..l],
           file_size - space_size,
         )
+        // We can't operate on this for some reason, so we'll skip it.
         _ -> #([h, ..l], file_size)
       }
     }
@@ -106,6 +114,20 @@ fn insert_no_frag(
 type Inserter =
   fn(List(Block), Int, Int) -> #(List(Block), Int)
 
+// Alg is (square?) but whatever.
+// use a zipper to traverse the map from right to left.
+// The zipper is a left arm, a right arm and a "current"
+// value. When the current value is a file that can be
+// moved, we can "insert" the peek value into the left
+// arm however we want. All we need to do is tell the 
+// compressor how much of the file we distributed in
+// spaces in the left arm, then replace the "peek" value
+// with the remainder (or equivalent space if we've
+// jammed the file into the left arm fully).
+// By generalizing this insertion pattern to work for
+// both parts, we can re-use the compress logic and
+// defer the insertion logic to a helper function that
+// implements the particular behavior we want form the part.
 fn compress_rec(
   z: Zipper(Block),
   last_id: Int,
