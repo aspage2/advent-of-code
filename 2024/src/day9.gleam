@@ -2,134 +2,187 @@ import gleam/bool
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/order
 import gleam/result
 import gleam/string
-import gleam/string_tree
+
 import util
+import zipper.{type Zipper}
 
-pub type Block {
-  Block(id: Int, size: Int)
+type Block {
+  File(id: Int, size: Int)
+  Space(size: Int)
 }
 
-fn take_file(acc: Int, graphemes: List(String)) -> #(List(Block), List(Int)) {
-  case graphemes {
-    [] -> #([], [])
-    [b, ..rest] -> {
-      let assert Ok(num) = int.parse(b)
-      let #(bs, ss) = take_space(acc + 1, rest)
-      #([Block(acc, num), ..bs], ss)
-    }
-  }
+// Apply the first function to the result from the second.
+// Helpful for transforming outputs from lower use-blocks
+fn defer(f: fn(a) -> b, blk: fn() -> a) -> b {
+  f(blk())
 }
 
-fn take_space(acc: Int, graphemes: List(String)) -> #(List(Block), List(Int)) {
-  case graphemes {
-    [] -> #([], [])
-    [b, ..rest] -> {
-      let assert Ok(num) = int.parse(b)
-      let #(bs, ss) = take_file(acc, rest)
-      #(bs, [num, ..ss])
-    }
-  }
-}
-
-pub fn parse_disk_map(txt: String) -> #(List(Block), List(Int)) {
-  let gs =
-    txt
-    |> string.trim
-    |> string.to_graphemes
-  take_file(0, gs)
-}
-
-pub fn compact_disk_map_rec(
-  map: List(Block),
-  rev: List(Block),
-  spc: List(Int),
-  partial: Bool,
-) -> List(Block) {
-  let assert [mh, ..m_rest] = map
-  let #(ret, m_rest) = case partial {
-    True -> #([], map)
-    False -> #([mh], m_rest)
-  }
-  let assert [rh, ..r_rest] = rev
-  let assert [sh, ..s_rest] = spc
-
-  use <- bool.guard(mh.id == rh.id, [rh])
-  use <- bool.guard(mh.id > rh.id, [])
-
-  ret
-  |> list.append(case int.compare(rh.size, sh) {
-    order.Lt -> [
-      rh,
-      ..compact_disk_map_rec(m_rest, r_rest, [sh - rh.size, ..s_rest], True)
-    ]
-    order.Eq -> [rh, ..compact_disk_map_rec(m_rest, r_rest, s_rest, False)]
-    order.Gt -> [
-      Block(..rh, size: sh),
-      ..compact_disk_map_rec(
-        m_rest,
-        [Block(..rh, size: rh.size - sh), ..r_rest],
-        s_rest,
-        False,
-      )
-    ]
+fn parse_summary(txt: String) -> List(Block) {
+  use <- defer(fn(x) {
+    let #(a, _, _) = x
+    a |> list.reverse
   })
-}
-
-pub fn compact_disk(bs: List(Block), spc: List(Int)) {
-  compact_disk_map_rec(bs, list.reverse(bs), spc, False)
-}
-
-pub fn checksum(bs: List(Block)) -> Int {
-  let #(_, ret) = {
-    use #(i, acc), b <- list.fold(bs, #(0, 0))
-    use <- bool.guard(b.size == 0, #(i, acc))
-    let sum = list.range(i, i + b.size - 1) |> int.sum()
-    #(i + b.size, acc + { sum * b.id })
+  use #(acc, is_file, id), g <- list.fold(string.to_graphemes(txt), #(
+    [],
+    True,
+    0,
+  ))
+  let assert Ok(size) = int.parse(g)
+  case is_file {
+    True -> #([File(id, size), ..acc], False, id + 1)
+    False -> #([Space(size), ..acc], True, id)
   }
-  ret
 }
 
-pub fn to_string_rec(
-  sb: string_tree.StringTree,
-  bs: List(Block),
-  spc: List(Int),
-) -> String {
-  case bs {
-    [] -> string_tree.to_string(sb)
-    [h, ..rest] -> {
-      let sb =
-        h.id
-        |> int.to_string
-        |> string.repeat(h.size)
-        |> string_tree.append(sb, _)
+const b64_graphemes = <<
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/",
+>>
 
-      let #(sb, spc) = case spc {
-        [] -> #(sb, spc)
-        [sh, ..srest] -> #(
-          string.repeat(".", sh)
-            |> string_tree.append(sb, _),
-          srest,
+fn b64encode(cp: Int) -> String {
+  let assert <<_:bytes-size(cp), ret:utf8_codepoint, _:bytes>> = b64_graphemes
+  string.from_utf_codepoints([ret])
+}
+
+fn to_string(l: List(Block)) -> String {
+  l
+  |> list.map(fn(b) {
+    case b {
+      File(id, size) -> b64encode(id) |> string.repeat(size)
+      Space(size) -> string.repeat(".", size)
+    }
+  })
+  |> string.concat
+}
+
+// Insert from the end. Return how much of the file is left.
+fn insert_at_end(l: List(Block), id: Int, file_size: Int) -> #(List(Block), Int) {
+  case l {
+    [] -> #([], file_size)
+    [h, ..rest] -> {
+      let #(l, file_size) = insert_at_end(rest, id, file_size)
+      use <- bool.guard(file_size == 0, #([h, ..l], 0))
+      case h {
+        Space(space_size) if space_size > file_size -> #(
+          [Space(space_size - file_size), File(id, file_size), ..l],
+          0,
         )
+        Space(space_size) if space_size > 0 -> #(
+          [File(id, space_size), ..l],
+          file_size - space_size,
+        )
+        _ -> #([h, ..l], file_size)
       }
-      to_string_rec(sb, rest, spc)
     }
   }
 }
 
-pub fn to_string(bs: List(Block), spc: List(Int)) -> String {
-  to_string_rec(string_tree.new(), bs, spc)
+fn insert_no_frag(
+  l: List(Block),
+  id: Int,
+  file_size: Int,
+) -> #(List(Block), Int) {
+  case l {
+    [] -> #([], file_size)
+    [h, ..rest] -> {
+      let #(l, file_size) = insert_no_frag(rest, id, file_size)
+      use <- bool.guard(file_size == 0, #([h, ..l], 0))
+      case h {
+        Space(space_size) if space_size > file_size -> #(
+          [Space(space_size - file_size), File(id, file_size), ..l],
+          0,
+        )
+        Space(space_size) if space_size == file_size -> #(
+          [File(id, file_size), ..l],
+          0,
+        )
+        _ -> #([h, ..l], file_size)
+      }
+    }
+  }
+}
+
+type Inserter =
+  fn(List(Block), Int, Int) -> #(List(Block), Int)
+
+fn compress_rec(
+  z: Zipper(Block),
+  last_id: Int,
+  insert: Inserter,
+) -> Zipper(Block) {
+  case zipper.left(z) {
+    Error(_) -> z
+    Ok(zl) -> {
+      case zipper.peek(z) {
+        // Case: we already pushed this down. Don't touch it any more. 
+        File(file_id, _) if last_id <= file_id ->
+          compress_rec(zl, last_id, insert)
+        Space(_) -> compress_rec(zl, last_id, insert)
+        File(file_id, file_size) -> {
+          let #(new_left_arm, rem) =
+            zipper.left_arm(z)
+            |> insert(file_id, file_size)
+
+          let new_z = case rem {
+            0 -> zipper.set(z, Space(file_size))
+            _ -> {
+              let new_z = zipper.set(z, File(file_id, rem))
+              case file_size - rem {
+                0 -> new_z
+                _ -> zipper.insert_right(new_z, Space(file_size - rem))
+              }
+            }
+          }
+          new_z
+          |> zipper.set_left_arm(new_left_arm)
+          |> zipper.left
+          |> result.map(compress_rec(_, file_id, insert))
+          |> result.unwrap(new_z)
+        }
+      }
+    }
+  }
+}
+
+fn first_left_file(z: Zipper(Block)) -> Result(Int, Nil) {
+  case zipper.peek(z) {
+    Space(_) -> zipper.left(z) |> result.then(first_left_file)
+    File(id, _) -> Ok(id)
+  }
+}
+
+fn compress(l: List(Block), ins: Inserter) -> List(Block) {
+  let z = zipper.from_list(l) |> zipper.back
+  let assert Ok(last_id) = first_left_file(z)
+  compress_rec(z, last_id + 1, ins) |> zipper.to_list
+}
+
+fn checksum(l: List(Block)) {
+  use <- defer(fn(p) {
+    let #(a, _) = p
+    a
+  })
+  use #(sum, x), blk <- list.fold(l, #(0, 0))
+  case blk {
+    Space(size) -> #(sum, x + size)
+    File(id, size) -> {
+      let n =
+        list.range(x, x + size - 1)
+        |> list.map(fn(i) { id * i })
+        |> int.sum
+
+      #(sum + n, x + size)
+    }
+  }
 }
 
 pub fn day_main(day: util.AdventDay) {
-  let assert Ok(txt) = util.read_file(day.file)
-  let #(bs, spc) = parse_disk_map(txt)
-  let res = compact_disk(bs, spc)
-  io.debug(to_string(bs, spc))
-  io.debug(to_string(res, []))
-  io.debug("==================")
-  io.debug(checksum(res))
+  let assert Ok(data) = util.read_file(day.file) |> result.map(string.trim)
+  let data = parse_summary(data)
+  let d = compress(data, insert_no_frag)
+  d
+  |> checksum
+  |> io.debug
   Nil
 }

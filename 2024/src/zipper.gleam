@@ -50,6 +50,14 @@ pub fn back(z: Zipper(a)) -> Zipper(a) {
   Zipper(rest, h, [])
 }
 
+pub fn left_arm(z: Zipper(a)) -> List(a) {
+  z.l
+}
+
+pub fn set_left_arm(z: Zipper(a), vals: List(a)) -> Zipper(a) {
+  Zipper(..z, l: vals)
+}
+
 pub fn peek(z: Zipper(a)) -> a {
   z.x
 }
