@@ -8,7 +8,7 @@ import gleam/string
 import util
 import zipper.{type Zipper}
 
-type Block {
+pub type Block {
   File(id: Int, size: Int)
   Space(size: Int)
 }
@@ -45,7 +45,7 @@ fn b64encode(cp: Int) -> String {
   string.from_utf_codepoints([ret])
 }
 
-fn to_string(l: List(Block)) -> String {
+pub fn to_string(l: List(Block)) -> String {
   l
   |> list.map(fn(b) {
     case b {

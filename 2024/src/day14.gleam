@@ -1,4 +1,5 @@
-import gleam/bool
+import gleam/pair
+import gleam/set
 import gleam/dict
 import gleam/int
 import gleam/io
@@ -98,35 +99,24 @@ pub fn print(vs: List(Vec), bounds: Vec) -> String {
   |> string_tree.to_string
 }
 
-pub fn x_symmetrical(robots: List(Vec), bounds: Vec) -> Bool {
-  let center = bounds.x / 2
-
-  let xs =
-    robots
-    |> list.map(fn(r) { r.x })
-    |> counter
-
-  list.range(0, center - 1)
-  |> list.all(fn(x) {
-    let r = {
-      use left <- result.try(dict.get(xs, x))
-      use right <- result.map(dict.get(xs, bounds.x - 1 - x))
-      left == right
-    }
-    result.unwrap(r, False)
-  })
+pub fn defer(f: fn(a) -> b, g: fn() -> a) -> b {
+  f(g())
 }
 
-pub fn find_symm(robots: List(#(Vec, Vec)), bounds: Vec, t: Int) -> Int {
-  use <- bool.lazy_guard(t > 100_000_000, fn() { panic })
-  let new_robots =
-    robots
-    |> list.map(fn(x) { translate(x.0, x.1, bounds, t) })
+@external(erlang, "timer", "sleep")
+pub fn sleep(ms: Int) -> util.Atom
 
-  case x_symmetrical(new_robots, bounds) {
-    True -> t
-    False -> find_symm(robots, bounds, t + 1)
-  }
+pub fn robot_string(robots: List(Vec), bounds: Vec) -> String {
+  let rs = set.from_list(robots)
+  use <- defer(string_tree.to_string)
+
+  use sb, r <- list.fold(list.range(0, bounds.y-1), string_tree.new())
+  use <- defer(string_tree.append(_, "\n"))
+  use sb, c <- list.fold(list.range(0, bounds.x-1), sb)
+  string_tree.append(sb, case set.contains(rs, Vec(c, r)) {
+    True -> "O"
+    False -> " "
+  })
 }
 
 pub fn day_main(day: util.AdventDay) -> Nil {
@@ -143,18 +133,17 @@ pub fn day_main(day: util.AdventDay) -> Nil {
 
   let b = Vec(101, 103)
 
-  let _ =
-    robots
-    |> list.map(fn(x) { translate(x.0, x.1, b, 100) })
-    |> list.map(get_quadrant(_, b))
-    |> counter
-    |> dict.filter(fn(k, _) { k != No })
-    |> dict.values
-    |> list.reduce(int.multiply)
-    |> io.debug
+  io.println(robot_string(robots |> list.map(pair.first), b))
 
-  find_symm(robots, b, 1)
-  |> io.debug
+  list.each(list.range(1000, 10000), fn(i) {
+    let rs = robots |> list.map(fn(p) {
+      translate(p.0, p.1, b, i)
+    })
+    io.println("\u{1b}[2J\u{1b}[H")
+    io.println(int.to_string(i))
+    io.println(robot_string(rs, b))
+    sleep(500)
+  })
 
   Nil
 }

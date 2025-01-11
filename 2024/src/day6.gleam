@@ -2,7 +2,7 @@ import gleam/bit_array
 import gleam/bool
 import gleam/bytes_tree
 import gleam/io
-import gleam/iterator
+import gleam/yielder
 import gleam/list
 import gleam/set
 import gleam/string
@@ -130,15 +130,15 @@ fn has_loop(walklist: set.Set(State), s: State, g: Grid) -> Bool {
 }
 
 fn count_loops(guard_start: State, g: Grid) -> Int {
-  let rows = iterator.range(0, g.height - 1)
-  let cols = iterator.range(0, g.width - 1)
+  let rows = yielder.range(0, g.height - 1)
+  let cols = yielder.range(0, g.width - 1)
   let pairs = {
-    use r <- iterator.flat_map(rows)
-    use c <- iterator.map(cols)
+    use r <- yielder.flat_map(rows)
+    use c <- yielder.map(cols)
     #(r, c)
   }
 
-  use tot, cel <- iterator.fold(pairs, 0)
+  use tot, cel <- yielder.fold(pairs, 0)
   let new_g = set(g, cel)
   tot + { has_loop(set.new(), guard_start, new_g) |> bool.to_int }
 }

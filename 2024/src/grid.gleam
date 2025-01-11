@@ -88,3 +88,4 @@ pub fn grid_cells(g: Grid) -> List(Cell) {
   use c <- list.map(list.range(0, g.width - 1))
   Cell(r, c)
 }
+

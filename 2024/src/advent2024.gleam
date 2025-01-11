@@ -13,6 +13,11 @@ import day16
 import day17
 import day18
 import day19
+import day20
+import day21
+import day22
+import day23
+import day24
 import day2
 import day3
 import day4
@@ -31,7 +36,8 @@ const days: List(AdventMain) = [
   day1.day_main, day2.day_main, day3.day_main, day4.day_main, day5.day_main,
   day6.day_main, day7.day_main, day8.day_main, day9.day_main, day10.day_main,
   day11.day_main, day12.day_main, day13.day_main, day14.day_main, day15.day_main,
-  day16.day_main, day17.day_main, day18.day_main, day19.day_main,
+  day16.day_main, day17.day_main, day18.day_main, day19.day_main, day20.day_main,
+  day21.day_main, day22.day_main, day23.day_main, day24.day_main,
 ]
 
 fn get_day(i: Int, days: List(AdventMain)) -> Result(AdventMain, String) {

@@ -1,57 +1,45 @@
-import gleam/bool
+import gleam/yielder
+import gleam/option
 import gleam/dict
 import gleam/io
-import gleam/iterator
 import gleam/list
-import gleam/option
 import gleam/set
 import gleam/string
 
 import util
-
-type Cell {
-  Cell(r: Int, c: Int)
-}
-
-type Grid {
-  Grid(w: Int, h: Int)
-}
+import grid.{type Grid, type Cell, Cell}
 
 fn in_grid(c: Cell, g: Grid) -> Bool {
-  c.r >= 0 && c.r < g.h && c.c >= 0 && c.c < g.w
+  grid.contains(g, c)
 }
 
 fn parse_grid(txt: String) -> #(Grid, dict.Dict(Int, List(Cell))) {
-  let lines =
-    string.trim(txt)
-    |> string.split("\n")
-  let assert [head, ..] = lines
-  let width = string.length(head)
-  let height = list.length(lines)
+  let assert Ok(g) = grid.parse_grid(txt)
 
-  let d = {
-    use dct, line, r <- list.index_fold(lines, dict.new())
-    let cps =
-      string.to_utf_codepoints(line)
-      |> list.map(string.utf_codepoint_to_int)
-
-    use dct, cp, c <- list.index_fold(cps, dct)
-    use <- bool.guard(cp == 46, dct)
-
-    use opt <- dict.upsert(dct, cp)
-    [
-      Cell(r, c),
-      ..case opt {
-        option.None -> []
-        option.Some(cells) -> cells
-      }
-    ]
+  let cells = {
+    use r <- list.flat_map(list.range(0, g.height - 1))
+    use c <- list.map(list.range(0, g.width - 1))
+    Cell(r, c)
   }
 
-  #(Grid(width, height), d)
+  let lookup = list.fold(cells, dict.new(), fn(dct, c) {
+    case grid.at(g, c) {
+    Ok(".") -> dct
+    Ok(x) -> {
+      let assert [h] = string.to_utf_codepoints(x)
+      use opt <- dict.upsert(dct, h |> string.utf_codepoint_to_int)
+      case opt {
+      option.None -> [c]
+      option.Some(l) -> [c, ..l]
+      }
+    }
+    Error(_) -> panic
+    }
+  })
+  #(g, lookup)
 }
 
-fn antinodes(c1: Cell, c2: Cell, g: Grid) -> List(Cell) {
+pub fn antinodes(c1: Cell, c2: Cell, g: Grid) -> List(Cell) {
   let dr = c1.r - c2.r
   let dc = c1.c - c2.c
 
@@ -77,20 +65,20 @@ fn line_antinodes(c1: Cell, c2: Cell, g: Grid) -> List(Cell) {
   let dc = c2.c - c1.c
 
   let l1 =
-    iterator.unfold(c1, fn(c) {
+    yielder.unfold(c1, fn(c) {
       case !in_grid(c, g) {
-        True -> iterator.Done
-        False -> iterator.Next(c, Cell(c.r - dr, c.c - dc))
+        True -> yielder.Done
+        False -> yielder.Next(c, Cell(c.r - dr, c.c - dc))
       }
     })
   let l2 =
-    iterator.unfold(c2, fn(c) {
+    yielder.unfold(c2, fn(c) {
       case !in_grid(c, g) {
-        True -> iterator.Done
-        False -> iterator.Next(c, Cell(c.r + dr, c.c + dc))
+        True -> yielder.Done
+        False -> yielder.Next(c, Cell(c.r + dr, c.c + dc))
       }
     })
-  iterator.concat([l1, l2]) |> iterator.to_list
+  yielder.concat([l1, l2]) |> yielder.to_list
 }
 
 fn all_antinodes(cs: List(Cell), g: Grid) -> set.Set(Cell) {

@@ -1,8 +1,6 @@
 import gleam/bit_array
-import gleam/dict
 import gleam/int
 import gleam/list
-import gleam/option
 import gleam/result
 import gleam/string
 
@@ -14,6 +12,20 @@ fn erl_get_plain_arguments() -> List(List(UtfCodepoint))
 pub fn argv() -> List(String) {
   erl_get_plain_arguments()
   |> list.map(string.from_utf_codepoints)
+}
+
+pub fn list_guard_empty(l: List(a), or: b, f: fn(a, List(a)) -> b) -> b {
+  case l {
+    [] -> or
+    [h, ..rest] -> f(h, rest)
+  }
+}
+
+pub fn list_guard_empty_lazy(l: List(a), or: fn() -> b, f: fn(a, List(a)) -> b) -> b {
+  case l {
+    [] -> or()
+    [h, ..rest] -> f(h, rest)
+  }
 }
 
 pub type AdventDay {
@@ -73,4 +85,8 @@ pub fn read_file(fname: String) -> Result(String, String) {
   use data <- result.try(read_file_raw(fname))
   bit_array.to_string(data)
   |> result.replace_error("not valid utf8")
+}
+
+pub fn defer(f: fn(a) -> b, g: fn() -> a) -> b {
+  f(g())
 }

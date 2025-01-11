@@ -1,12 +1,9 @@
 import gleam/bit_array
-import gleam/bool
 import gleam/dict
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/option
 import gleam/order
-import gleam/queue
 import gleam/result
 import gleam/set
 import gleam/string
@@ -19,7 +16,7 @@ type Graph =
 type Pair =
   #(Int, Int)
 
-fn root(g: Graph) -> Int {
+pub fn root(g: Graph) -> Int {
   let keys =
     dict.keys(g)
     |> set.from_list

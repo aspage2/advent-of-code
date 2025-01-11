@@ -1,5 +1,4 @@
 import gleam/bool
-import gleam/float
 import gleam/int
 import gleam/io
 import gleam/list
@@ -8,24 +7,24 @@ import gleam/string
 import gleam/string_tree
 import util
 
-type Array(a)
+pub type Array(a)
 
 @external(erlang, "array", "fix")
-fn erl_array_fix(a: Array(a)) -> Array(a)
+pub fn erl_array_fix(a: Array(a)) -> Array(a)
 
 @external(erlang, "array", "from_list")
-fn erl_arr_from_list(xs: List(a)) -> Array(a)
+pub fn erl_arr_from_list(xs: List(a)) -> Array(a)
 
 @external(erlang, "array", "get")
-fn erl_array_get(i: Int, a: Array(a)) -> a
+pub fn erl_array_get(i: Int, a: Array(a)) -> a
 
 @external(erlang, "array", "size")
-fn erl_array_size(a: Array(a)) -> Int
+pub fn erl_array_size(a: Array(a)) -> Int
 
-type Program =
+pub type Program =
   Array(Inst)
 
-type VMState {
+pub type VMState {
   VMState(pc: Int, reg_a: Int, reg_b: Int, reg_c: Int, output: List(Int))
 }
 
@@ -125,7 +124,7 @@ fn do(vs: VMState, inst: Inst) -> VMState {
   }
 }
 
-fn unstep(vs: VMState) -> VMState {
+pub fn unstep(vs: VMState) -> VMState {
   VMState(..vs, pc: vs.pc - 1)
 }
 
@@ -247,7 +246,7 @@ fn find(prgm: Program, rev_p: List(Int), a: Int) -> Int {
   }
 }
 
-pub fn day_main(d: util.AdventDay) {
+pub fn day_main(_d: util.AdventDay) {
   let p = [2, 4, 1, 2, 7, 5, 4, 5, 0, 3, 1, 7, 5, 5, 3, 0]
 
   let assert Ok(prgm_list) =
